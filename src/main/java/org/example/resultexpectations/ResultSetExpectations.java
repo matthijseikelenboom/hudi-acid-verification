@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public class ResultSetExpectations {
-    private Map<String, Expectation> expectationPerPrimaryKeyValue = new HashMap<>();
+    private final Map<String, Expectation> expectationPerPrimaryKeyValue = new HashMap<>();
 
     public void setRecordExpectation(String primaryKeyValue, Expectation expectation) {
         expectationPerPrimaryKeyValue.put(primaryKeyValue, expectation);

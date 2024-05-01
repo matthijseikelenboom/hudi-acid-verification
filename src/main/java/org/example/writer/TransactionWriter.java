@@ -31,8 +31,8 @@ public class TransactionWriter extends Thread {
     private final Supplier<Transaction> transactionSupplier;
     private final Consumer<Transaction> transactionCommittedConsumer;
     private final SparkSession session;
-    private String databaseName;
-    private String tableName;
+    private final String databaseName;
+    private final String tableName;
     private final AtomicInteger tempViewNumber;
     private final AtomicBoolean stopWriter;
 

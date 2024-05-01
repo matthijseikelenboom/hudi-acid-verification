@@ -25,14 +25,12 @@ public class ResultSet {
 
     public Optional<Record> getRecordByPrimaryKey(String primaryKeyValue) {
         var matchingRecords = recordByPrimaryKey.getOrDefault(primaryKeyValue, List.of());
-        switch (matchingRecords.size()) {
-            case 0:
-                return Optional.empty();
-            case 1:
-                return Optional.of(matchingRecords.get(0));
-            default:
-                throw new InconsistentResultSetException("More than one row found with primaryKeyValue " + primaryKeyValue + ". Rows found:\n" + matchingRecords);
-        }
+        return switch (matchingRecords.size()) {
+            case 0 -> Optional.empty();
+            case 1 -> Optional.of(matchingRecords.get(0));
+            default ->
+                    throw new InconsistentResultSetException("More than one row found with primaryKeyValue " + primaryKeyValue + ". Rows found:\n" + matchingRecords);
+        };
     }
 
 }

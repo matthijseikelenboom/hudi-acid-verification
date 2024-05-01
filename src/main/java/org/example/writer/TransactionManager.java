@@ -73,15 +73,19 @@ public class TransactionManager {
 
     private void createOrRecreateTable() {
         session.sql("DROP TABLE IF EXISTS " + fullyQualifiedTableName);
-        session.sql(String.format("CREATE TABLE IF NOT EXISTS %s(\n" +
-                "primaryKeyValue STRING,\n" +
-                "partitionKeyValue STRING,\n" +
-                "dataValue STRING)\n" +
-            "USING hudi\n" +
-            "PARTITIONED BY (partitionKeyValue)\n" +
-            "TBLPROPERTIES (\n" +
-                "primaryKey = 'primaryKeyValue',\n" +
-                "preCombinedField = 'dataValue')", fullyQualifiedTableName));
+        session.sql(String.format("""
+            CREATE TABLE IF NOT EXISTS %s(
+                primaryKeyValue STRING,
+                partitionKeyValue STRING,
+                dataValue STRING
+            )
+            USING hudi
+            PARTITIONED BY (partitionKeyValue)
+            TBLPROPERTIES (
+                primaryKey = 'primaryKeyValue',
+                preCombinedField = 'dataValue'
+            )
+        """, fullyQualifiedTableName));
     }
 
     public boolean hasFailedVerification() {

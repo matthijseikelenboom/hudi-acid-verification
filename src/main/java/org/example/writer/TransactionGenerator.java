@@ -1,7 +1,6 @@
 package org.example.writer;
 
 import lombok.NonNull;
-import org.apache.hadoop.yarn.webapp.hamlet2.Hamlet;
 import org.example.transactionlog.DataManipulation;
 import org.example.transactionlog.ManipulationType;
 import org.example.transactionlog.Transaction;
