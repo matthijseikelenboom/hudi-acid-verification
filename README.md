@@ -60,9 +60,9 @@ This is effectively the same check as one to verify atomicity.
 To verify durability, we should verify that the contents we're sure about, are part of the result set.
 
 ## Running the verification
-Currently, the project is designed to run via a test package.
-This does however mean that, depending on your file system, it doesn't run on a distributed file system, like HDFS.
-Unless you would have that installed.
+To run the verification, you'll first need to start Docker, as the test relies on test containers.
+After Docker has been started, you can run the test in `TransactionManagerTest`.
+Note that this test doesn't run on a distributed file system, like HDFS, unless you have it installed on the machine you're running it on.
 
 # Test results
 At first glance the test seems to succeed, as it is green in the IDE (IntelliJ).
