@@ -1,5 +1,6 @@
 package org.example.writer;
 
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.SparkSession;
 import org.example.SparkSessionProvider;
 import org.junit.jupiter.api.BeforeAll;
@@ -9,11 +10,13 @@ import org.testcontainers.shaded.org.apache.commons.io.FileUtils;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class TransactionManagerTest {
-    private static final Path testDataDir = Path.of("/tmp/lakehouse");
+    private static final Path testDataDir = Paths.get("/tmp/lakehouse");
     private static final SparkSessionProvider SPARK_SESSION_PROVIDER = new SparkSessionProvider(testDataDir, true);
     private static final SparkSession session = SPARK_SESSION_PROVIDER.getSession();
     private static Configuration configuration;
@@ -41,8 +44,8 @@ public class TransactionManagerTest {
         transactionManager.run();
 
         // Then
-        final var dataSet = session.sql(String.format("SELECT * FROM %s.%s", configuration.getDatabaseName(), configuration.getTableName()));
-        final var rows = dataSet.collectAsList();
+        final Dataset dataSet = session.sql(String.format("SELECT * FROM %s.%s", configuration.getDatabaseName(), configuration.getTableName()));
+        final List rows = dataSet.collectAsList();
         System.out.println(rows.size());
         assertThat(transactionManager.hasFailedVerification()).withFailMessage("ACID Verification failed.").isFalse();
         assertThat(transactionManager.isHasFailedWriters()).withFailMessage("One or more writer threads failed").isFalse();

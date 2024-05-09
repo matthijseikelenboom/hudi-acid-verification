@@ -43,8 +43,8 @@ public class SparkSessionProvider {
     }
 
     public SparkSession getSession() {
-        var sparkMasterAddress = "local[*]";
-        var hivePort = 9083;
+        String sparkMasterAddress = "local[*]";
+        int hivePort = 9083;
         if (metastoreContainer != null) {
             hivePort = metastoreContainer.getFirstMappedPort();
         }

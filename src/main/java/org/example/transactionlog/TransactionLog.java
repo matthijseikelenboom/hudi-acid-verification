@@ -14,12 +14,12 @@ public class TransactionLog {
     }
 
     public void logIntent(Transaction transaction) {
-        var event = new TransactionLogEvent(EventType.TRANSACTION_INTENDED, transaction);
+        TransactionLogEvent event = new TransactionLogEvent(EventType.TRANSACTION_INTENDED, transaction);
         add(event);
     }
 
     public void logCommit(Transaction transaction) {
-        var event = new TransactionLogEvent(EventType.TRANSACTION_COMMITTED, transaction);
+        TransactionLogEvent event = new TransactionLogEvent(EventType.TRANSACTION_COMMITTED, transaction);
         add(event);
     }
 

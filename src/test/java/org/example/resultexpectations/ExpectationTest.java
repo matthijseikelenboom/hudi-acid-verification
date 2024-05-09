@@ -7,6 +7,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -26,10 +27,10 @@ class ExpectationTest {
     @MethodSource
     void expectRecordPresence(Record record, ResultSet resultSet, boolean expectedResult) {
         // Given
-        final var expectation = ExpectRecordPresence.create(record);
+        final ExpectRecordPresence expectation = ExpectRecordPresence.create(record);
 
         // When
-        final var satisfied = expectation.isSatisfied(resultSet);
+        final boolean satisfied = expectation.isSatisfied(resultSet);
 
         // Then
         assertThat(satisfied).isEqualTo(expectedResult);
@@ -38,8 +39,8 @@ class ExpectationTest {
     @Test
     void expectRecordPresence_withDuplicateRow() {
         // Given
-        final var resultSet = new ResultSet(List.of(RECORD_1_INITIAL, RECORD_1_UPDATED));
-        final var expectation = ExpectRecordPresence.create(RECORD_1_INITIAL);
+        final ResultSet resultSet = new ResultSet(Arrays.asList(RECORD_1_INITIAL, RECORD_1_UPDATED));
+        final ExpectRecordPresence expectation = ExpectRecordPresence.create(RECORD_1_INITIAL);
 
         // When + Then
         assertThatThrownBy(() -> expectation.isSatisfied(resultSet)).isInstanceOf(RuntimeException.class);
@@ -49,10 +50,10 @@ class ExpectationTest {
     @MethodSource
     void expectRecordAbsence(Record record, ResultSet resultSet, boolean expectedResult) {
         // Given
-        final var expectation = ExpectRecordAbsence.create(record);
+        final ExpectRecordAbsence expectation = ExpectRecordAbsence.create(record);
 
         // When
-        final var satisfied = expectation.isSatisfied(resultSet);
+        final boolean satisfied = expectation.isSatisfied(resultSet);
 
         // Then
         assertThat(satisfied).isEqualTo(expectedResult);
@@ -61,8 +62,8 @@ class ExpectationTest {
     @Test
     void expectRecordAbsence_withDuplicateRow() {
         // Given
-        final var resultSet = new ResultSet(List.of(RECORD_1_INITIAL, RECORD_1_UPDATED));
-        final var expectation = ExpectRecordAbsence.create(RECORD_1_INITIAL);
+        final ResultSet resultSet = new ResultSet(Arrays.asList(RECORD_1_INITIAL, RECORD_1_UPDATED));
+        final ExpectRecordAbsence expectation = ExpectRecordAbsence.create(RECORD_1_INITIAL);
 
         // When + Then
         assertThatThrownBy(() -> expectation.isSatisfied(resultSet)).isInstanceOf(RuntimeException.class);
@@ -72,14 +73,14 @@ class ExpectationTest {
     @MethodSource
     void expectOrCondition(Or expectation, ResultSet resultSet, boolean expectedResult) {
         // When
-        final var satisfied = expectation.isSatisfied(resultSet);
+        final boolean satisfied = expectation.isSatisfied(resultSet);
 
         // Then
         assertThat(satisfied).isEqualTo(expectedResult);
     }
 
     static Stream<Arguments> expectRecordPresence() {
-        final var resultSet = new ResultSet(List.of(RECORD_1_INITIAL, RECORD_2_INITIAL));
+        final ResultSet resultSet = new ResultSet(Arrays.asList(RECORD_1_INITIAL, RECORD_2_INITIAL));
 
         return Stream.of(
                 Arguments.of(RECORD_1_INITIAL, resultSet, true),
@@ -90,7 +91,7 @@ class ExpectationTest {
     }
 
     static Stream<Arguments> expectRecordAbsence() {
-        final var resultSet = new ResultSet(List.of(RECORD_1_INITIAL, RECORD_2_INITIAL));
+        final ResultSet resultSet = new ResultSet(Arrays.asList(RECORD_1_INITIAL, RECORD_2_INITIAL));
 
         return Stream.of(
                 Arguments.of(RECORD_1_INITIAL, resultSet, false),
@@ -101,13 +102,13 @@ class ExpectationTest {
     }
 
     static Stream<Arguments> expectOrCondition() {
-        final var resultSet = new ResultSet(List.of(RECORD_1_INITIAL, RECORD_2_INITIAL));
+        final ResultSet resultSet = new ResultSet(Arrays.asList(RECORD_1_INITIAL, RECORD_2_INITIAL));
 
-        final var initialRecord1Present = ExpectRecordPresence.create(RECORD_1_INITIAL);
-        final var updatedRecord1Present = ExpectRecordPresence.create(RECORD_1_UPDATED);
-        final var record1Absent = ExpectRecordAbsence.create(RECORD_1_INITIAL);
-        final var initialRecord2Present = ExpectRecordPresence.create(RECORD_2_INITIAL);
-        final var updatedRecord2Present = ExpectRecordPresence.create(RECORD_2_UPDATED);
+        final ExpectRecordPresence initialRecord1Present = ExpectRecordPresence.create(RECORD_1_INITIAL);
+        final ExpectRecordPresence updatedRecord1Present = ExpectRecordPresence.create(RECORD_1_UPDATED);
+        final ExpectRecordAbsence record1Absent = ExpectRecordAbsence.create(RECORD_1_INITIAL);
+        final ExpectRecordPresence initialRecord2Present = ExpectRecordPresence.create(RECORD_2_INITIAL);
+        final ExpectRecordPresence updatedRecord2Present = ExpectRecordPresence.create(RECORD_2_UPDATED);
 
         return Stream.of(
                 Arguments.of(initialRecord1Present.or(record1Absent), resultSet, true),

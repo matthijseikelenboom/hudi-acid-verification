@@ -40,27 +40,27 @@ public class TransactionManager {
         createDatabaseIfNotExists();
         createOrRecreateTable();
 
-        var numberOfSparkSessionsForWriters = configuration.getNumberOfSparkSessionsForWriters();
-        var numberOfSparkSessionsForReaders = configuration.getNumberOfSparkSessionsForReaders();
-        var sparkSessionForWriters = createSparkSessions(numberOfSparkSessionsForWriters);
-        var sparkSessionForReaders = createSparkSessions(numberOfSparkSessionsForReaders);
+        int numberOfSparkSessionsForWriters = configuration.getNumberOfSparkSessionsForWriters();
+        int numberOfSparkSessionsForReaders = configuration.getNumberOfSparkSessionsForReaders();
+        SparkSession[] sparkSessionForWriters = createSparkSessions(numberOfSparkSessionsForWriters);
+        SparkSession[] sparkSessionForReaders = createSparkSessions(numberOfSparkSessionsForReaders);
 
         hasFailedReaders = false;
-        var numberOfReaderThreads = configuration.getNumberOfReaderThreads();
-        var readerThreads = createAndStartReaderThreads(numberOfReaderThreads, sparkSessionForReaders, numberOfSparkSessionsForReaders);
+        int numberOfReaderThreads = configuration.getNumberOfReaderThreads();
+        ReaderThread[] readerThreads = createAndStartReaderThreads(numberOfReaderThreads, sparkSessionForReaders, numberOfSparkSessionsForReaders);
 
         hasFailedWriters = false;
-        var numberOfWriterThreads = configuration.getNumberOfWriterThreads();
-        var writerThreads = createAndStartTransactionWriters(numberOfWriterThreads, sparkSessionForWriters, numberOfSparkSessionsForWriters);
+        int numberOfWriterThreads = configuration.getNumberOfWriterThreads();
+        TransactionWriter[] writerThreads = createAndStartTransactionWriters(numberOfWriterThreads, sparkSessionForWriters, numberOfSparkSessionsForWriters);
 
-        for (var writerThread : writerThreads) {
+        for (TransactionWriter writerThread : writerThreads) {
             writerThread.join();
             hasFailedWriters = hasFailedWriters && writerThread.getWriterException() != null;
         }
 
         stopReadersAndWriters.set(true);
 
-        for (var readerThread : readerThreads) {
+        for (ReaderThread readerThread : readerThreads) {
             readerThread.join();
             hasFailedReaders = hasFailedReaders && readerThread.getReaderException() != null;
         }
@@ -73,19 +73,15 @@ public class TransactionManager {
 
     private void createOrRecreateTable() {
         session.sql("DROP TABLE IF EXISTS " + fullyQualifiedTableName);
-        session.sql(String.format("""
-            CREATE TABLE IF NOT EXISTS %s(
-                primaryKeyValue STRING,
-                partitionKeyValue STRING,
-                dataValue STRING
-            )
-            USING hudi
-            PARTITIONED BY (partitionKeyValue)
-            TBLPROPERTIES (
-                primaryKey = 'primaryKeyValue',
-                preCombinedField = 'dataValue'
-            )
-        """, fullyQualifiedTableName));
+        session.sql(String.format("CREATE TABLE IF NOT EXISTS %s(\n" +
+                "primaryKeyValue STRING,\n" +
+                "partitionKeyValue STRING,\n" +
+                "dataValue STRING)\n" +
+                "USING hudi\n" +
+                "PARTITIONED BY (partitionKeyValue)\n" +
+                "TBLPROPERTIES (\n" +
+                "primaryKey = 'primaryKeyValue',\n" +
+                "preCombinedField = 'dataValue')", fullyQualifiedTableName));
     }
 
     public boolean hasFailedVerification() {
@@ -93,17 +89,17 @@ public class TransactionManager {
     }
 
     private SparkSession[] createSparkSessions(final int numberOfSparkSessions) {
-        var childSessions = new SparkSession[numberOfSparkSessions];
-        for (var sessionNumber = 0; sessionNumber < numberOfSparkSessions; sessionNumber++) {
+        SparkSession[] childSessions = new SparkSession[numberOfSparkSessions];
+        for (int sessionNumber = 0; sessionNumber < numberOfSparkSessions; sessionNumber++) {
             childSessions[sessionNumber] = session.cloneSession();
         }
         return childSessions;
     }
 
     private ReaderThread[] createAndStartReaderThreads(final int numberOfReaderThreads, final SparkSession[] sessions, final int numberOfSparkSessions) {
-        var readerThreads = new ReaderThread[numberOfReaderThreads];
-        for (var readerNumber = 0; readerNumber < numberOfReaderThreads; readerNumber++) {
-            var childSession = sessions[readerNumber % numberOfSparkSessions];
+        ReaderThread[] readerThreads = new ReaderThread[numberOfReaderThreads];
+        for (int readerNumber = 0; readerNumber < numberOfReaderThreads; readerNumber++) {
+            SparkSession childSession = sessions[readerNumber % numberOfSparkSessions];
             readerThreads[readerNumber] = new ReaderThread(transactionLog, childSession, fullyQualifiedTableName, stopReadersAndWriters, this::failedVerificationCallback);
             readerThreads[readerNumber].setName("acid-reader-" + readerNumber);
             readerThreads[readerNumber].start();
@@ -112,9 +108,9 @@ public class TransactionManager {
     }
 
     private TransactionWriter[] createAndStartTransactionWriters(final int numberOfWriterThreads, final SparkSession[] sessions, final int numberOfSparkSessions) {
-        var writerThreads = new TransactionWriter[numberOfWriterThreads];
-        for (var writerNumber = 0; writerNumber < numberOfWriterThreads; writerNumber++) {
-            var childSession = sessions[writerNumber % numberOfSparkSessions];
+        TransactionWriter[] writerThreads = new TransactionWriter[numberOfWriterThreads];
+        for (int writerNumber = 0; writerNumber < numberOfWriterThreads; writerNumber++) {
+            SparkSession childSession = sessions[writerNumber % numberOfSparkSessions];
             writerThreads[writerNumber] = new TransactionWriter(
                     transactionLog,
                     this::provideTransactionIfLimitNotReached,
@@ -131,8 +127,9 @@ public class TransactionManager {
     }
 
     private Transaction provideTransactionIfLimitNotReached() {
-        final var transactionNumber = transactionCount.incrementAndGet();
+        final int transactionNumber = transactionCount.incrementAndGet();
         if (transactionNumber <= configuration.getTotalNumberOfTransactions()) {
+            System.out.println("Starting next transaction: " + transactionNumber);
             return transactionGenerator.getNextTransaction();
         } else {
             stopReadersAndWriters.set(true);

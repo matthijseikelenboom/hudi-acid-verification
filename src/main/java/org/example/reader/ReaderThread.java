@@ -4,10 +4,12 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.spark.sql.SparkSession;
 import org.example.resultexpectations.ResultSetExpectationProducer;
+import org.example.resultexpectations.ResultSetExpectations;
 import org.example.resultset.Record;
 import org.example.resultset.ResultSet;
 import org.example.transactionlog.TransactionLog;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
@@ -50,13 +52,13 @@ public class ReaderThread extends Thread {
     }
 
     private void performVerification() {
-        final var eventCountBeforeRead = transactionLog.getEventCount();
-        final var timeBeforeRead = System.currentTimeMillis();
-        final var resultSet = readData();
-        final var readDuration = System.currentTimeMillis() - timeBeforeRead;
-        final var eventCountAfterRead = transactionLog.getEventCount();
-        final var resultSetExpectations = resultSetExpectationProducer.createResultSetExpectations(eventCountBeforeRead, eventCountAfterRead);
-        final var satisfied = resultSetExpectations.isStatisfied(resultSet);
+        final int eventCountBeforeRead = transactionLog.getEventCount();
+        final long timeBeforeRead = System.currentTimeMillis();
+        final ResultSet resultSet = readData();
+        final long readDuration = System.currentTimeMillis() - timeBeforeRead;
+        final int eventCountAfterRead = transactionLog.getEventCount();
+        final ResultSetExpectations resultSetExpectations = resultSetExpectationProducer.createResultSetExpectations(eventCountBeforeRead, eventCountAfterRead);
+        final boolean satisfied = resultSetExpectations.isStatisfied(resultSet);
         if (!satisfied) {
             log.error("Verification Failed. ResultSet:\n{}", resultSet);
             verificationFailedCallback.run();
@@ -73,7 +75,7 @@ public class ReaderThread extends Thread {
 
     public ResultSet readData() {
         session.sql("REFRESH TABLE " + fullyQualifiedTableName);
-        var recordDataSet = session
+        List<Record> recordDataSet = session
                 .sql("SELECT * FROM " + fullyQualifiedTableName)
                 .as(Record.getEncoder())
                 .collectAsList();

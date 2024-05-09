@@ -4,6 +4,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -24,13 +25,15 @@ public class ResultSet {
     }
 
     public Optional<Record> getRecordByPrimaryKey(String primaryKeyValue) {
-        var matchingRecords = recordByPrimaryKey.getOrDefault(primaryKeyValue, List.of());
-        return switch (matchingRecords.size()) {
-            case 0 -> Optional.empty();
-            case 1 -> Optional.of(matchingRecords.get(0));
-            default ->
-                    throw new InconsistentResultSetException("More than one row found with primaryKeyValue " + primaryKeyValue + ". Rows found:\n" + matchingRecords);
-        };
+        List<Record> matchingRecords = recordByPrimaryKey.getOrDefault(primaryKeyValue, Collections.emptyList());
+        switch (matchingRecords.size()) {
+            case 0:
+                return Optional.empty();
+            case 1:
+                return Optional.of(matchingRecords.get(0));
+            default:
+                throw new InconsistentResultSetException("More than one row found with primaryKeyValue " + primaryKeyValue + ". Rows found:\n" + matchingRecords);
+        }
     }
 
 }

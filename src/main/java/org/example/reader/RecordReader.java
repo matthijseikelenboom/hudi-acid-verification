@@ -7,6 +7,8 @@ import org.example.resultexpectations.ResultSetExpectations;
 import org.example.resultset.Record;
 import org.example.resultset.ResultSet;
 
+import java.util.List;
+
 @Getter
 @AllArgsConstructor(staticName = "create")
 public class RecordReader {
@@ -14,13 +16,13 @@ public class RecordReader {
     private final SparkSession session;
 
     public boolean readAndVerifyData() {
-        var result = readData();
+        ResultSet result = readData();
 
         return verifyResultSet(result);
     }
 
     public ResultSet readData() {
-        var recordDataSet = session
+        List<Record> recordDataSet = session
                 .sql("SELECT * FROM record;")
                 .as(Record.getEncoder())
                 .collectAsList();

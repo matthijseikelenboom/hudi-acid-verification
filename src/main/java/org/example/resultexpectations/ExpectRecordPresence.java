@@ -18,7 +18,7 @@ public class ExpectRecordPresence implements Expectation {
 
     @Override
     public boolean isSatisfied(ResultSet resultSet) {
-        final var resultSetRecord = resultSet.getRecordByPrimaryKey(recordExpectedToBePresent.getPrimaryKeyValue()).orElse(null);
+        final Record resultSetRecord = resultSet.getRecordByPrimaryKey(recordExpectedToBePresent.getPrimaryKeyValue()).orElse(null);
         return Objects.equals(recordExpectedToBePresent, resultSetRecord);
     }
 }

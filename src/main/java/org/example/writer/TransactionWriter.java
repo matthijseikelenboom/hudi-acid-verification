@@ -4,12 +4,16 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.spark.SparkException;
 import org.apache.spark.sql.AnalysisException;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.example.resultset.InconsistentResultSetException;
 import org.example.resultset.Record;
 import org.example.transactionlog.*;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,13 +23,13 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class TransactionWriter extends Thread {
-    private static final Set<String> KNOWN_TRANSACTION_FAILURE_CLASSES = Set.of(
+    private static final Set<String> KNOWN_TRANSACTION_FAILURE_CLASSES = new HashSet<>(Arrays.asList(
             "org.apache.hudi.exception.HoodieException",
             "org.apache.hudi.exception.HoodieCompactionException",
             "org.apache.hudi.exception.HoodieRollbackException",
             "org.apache.hudi.exception.HoodieWriteConflictException",
             "org.apache.spark.SparkException"
-    );
+    ));
 
     private final TransactionLog transactionLog;
     private final Supplier<Transaction> transactionSupplier;
@@ -64,7 +68,7 @@ public class TransactionWriter extends Thread {
         log.info("{} started.", Thread.currentThread().getName());
         try {
             while (!stopWriter.get()) {
-                var transaction = transactionSupplier.get();
+                Transaction transaction = transactionSupplier.get();
                 if (transaction != null) {
                     log.info("[Writer] Handling transaction {}", transaction.transactionId);
                     handleTransaction(transaction);
@@ -79,7 +83,7 @@ public class TransactionWriter extends Thread {
 
     private void handleTransaction(final Transaction transaction) {
         transactionLog.add(new TransactionLogEvent(EventType.TRANSACTION_INTENDED, transaction));
-        var timeBeforeTransaction = System.currentTimeMillis();
+        long timeBeforeTransaction = System.currentTimeMillis();
         withRetryOnException(() -> {
             switch (transaction.manipulationType) {
                 case INSERT:
@@ -95,15 +99,15 @@ public class TransactionWriter extends Thread {
                     throw new IllegalArgumentException("Unknown manipulationType: " + transaction.manipulationType);
             }
         });
-        var transactionDuration = System.currentTimeMillis() - timeBeforeTransaction;
+        long transactionDuration = System.currentTimeMillis() - timeBeforeTransaction;
         log.info("Acid Verification threadType='writer' manipulationType={} duration={}", transaction.manipulationType, transactionDuration);
         transactionCommittedConsumer.accept(transaction);
         transactionLog.logCommit(transaction);
     }
 
     private void withRetryOnException(DataManipulationTransaction transaction) {
-        var retryCount = 0;
-        var ranSuccessfully = false;
+        int retryCount = 0;
+        boolean ranSuccessfully = false;
         while (!ranSuccessfully) {
             try {
                 transaction.run();
@@ -120,14 +124,14 @@ public class TransactionWriter extends Thread {
 
     private void insertTransaction(Transaction transaction) {
         tryTransaction(() -> {
-            final var records = transaction.dataManipulations
+            final List<Record> records = transaction.dataManipulations
                     .stream()
                     .map(TransactionWriter::mapToRecord)
                     .collect(Collectors.toList());
 
-            var warehouseDir = session.conf().get("spark.sql.warehouse.dir");
-            var tablePath = warehouseDir + "/" + databaseName + ".db/" + tableName;
-            var dataSet = session.createDataset(records, Record.getEncoder());
+            String warehouseDir = session.conf().get("spark.sql.warehouse.dir");
+            String tablePath = warehouseDir + "/" + databaseName + ".db/" + tableName;
+            Dataset<Record> dataSet = session.createDataset(records, Record.getEncoder());
 
             dataSet.write().format("hudi")
                     .option("hoodie.table.name", tableName)
@@ -141,16 +145,16 @@ public class TransactionWriter extends Thread {
 
     private void updateTransaction(Transaction transaction) throws InconsistentResultSetException {
         tryTransaction(() -> {
-            final var records = transaction.dataManipulations
+            final List<Record> records = transaction.dataManipulations
                     .stream()
                     .map(TransactionWriter::mapToRecord)
                     .collect(Collectors.toList());
 
             try {
-                var rowsToUpdate = session.createDataset(records, Record.getEncoder());
-                var tempViewName = "temp_view_" + tempViewNumber.incrementAndGet();
+                Dataset<Record> rowsToUpdate = session.createDataset(records, Record.getEncoder());
+                String tempViewName = "temp_view_" + tempViewNumber.incrementAndGet();
                 rowsToUpdate.createTempView(tempViewName);
-                var updateStatement = "MERGE INTO " + databaseName + "." + tableName + " t \n" +
+                String updateStatement = "MERGE INTO " + databaseName + "." + tableName + " t \n" +
                         "USING (SELECT * FROM " + tempViewName +") s \n" +
                         "ON t.primaryKeyValue = s.primaryKeyValue \n" +
                         "WHEN MATCHED THEN UPDATE SET t.dataValue = s.dataValue " +
@@ -166,12 +170,12 @@ public class TransactionWriter extends Thread {
 
     private void deleteTransaction(Transaction transaction) throws InconsistentResultSetException {
         tryTransaction(() -> {
-            var primaryKeyValues = transaction.dataManipulations
+            String primaryKeyValues = transaction.dataManipulations
                     .stream()
                     .map(dataManipulation -> "\"" + dataManipulation.primaryKeyValue + "\"")
                     .collect(Collectors.joining());
 
-            var deleteStatement = String.format("DELETE FROM %s WHERE primaryKeyValue IN (%s)", databaseName + "." + tableName, primaryKeyValues);
+            String deleteStatement = String.format("DELETE FROM %s WHERE primaryKeyValue IN (%s)", databaseName + "." + tableName, primaryKeyValues);
             session.sql(deleteStatement);
         });
     }

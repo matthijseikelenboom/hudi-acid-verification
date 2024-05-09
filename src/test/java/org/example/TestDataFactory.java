@@ -8,9 +8,9 @@ import org.example.resultset.Record;
 public class TestDataFactory {
 
     public static Record createRecord(int sequenceNumber) {
-        var primaryKeyValue = "PK" + sequenceNumber;
-        var partitionKeyValue = "Partition" + (sequenceNumber % 4);
-        var dataValue = "Initial value " + sequenceNumber;
+        String primaryKeyValue = "PK" + sequenceNumber;
+        String partitionKeyValue = "Partition" + (sequenceNumber % 4);
+        String dataValue = "Initial value " + sequenceNumber;
         return new Record(primaryKeyValue, partitionKeyValue, dataValue);
      }
 

@@ -30,8 +30,8 @@ public class TransactionGenerator {
     
     public Transaction getNextTransaction() {
         synchronized (availableRecordIdentifiers) {
-            var enoughExistingRecordsForUpdateOrDelete = availableRecordIdentifiers.getNumberOfExistingRecords() >= recordsPertransaction;
-            var enoughExistingRecordsForInsert = availableRecordIdentifiers.getNumberOfNonExistingRecords() >= recordsPertransaction;
+            boolean enoughExistingRecordsForUpdateOrDelete = availableRecordIdentifiers.getNumberOfExistingRecords() >= recordsPertransaction;
+            boolean enoughExistingRecordsForInsert = availableRecordIdentifiers.getNumberOfNonExistingRecords() >= recordsPertransaction;
             ManipulationType manipulationType;
             if (enoughExistingRecordsForInsert && (!enoughExistingRecordsForUpdateOrDelete || randomInsertDecision())) {
                 manipulationType = ManipulationType.INSERT;
@@ -40,7 +40,7 @@ public class TransactionGenerator {
             } else {
                 throw new IllegalStateException("Not enough record identifiers available to create the next transaction.");
             }
-            final var transaction = createTransaction(manipulationType);
+            final Transaction transaction = createTransaction(manipulationType);
             System.out.println(transaction);
             return transaction;
         }
@@ -65,7 +65,7 @@ public class TransactionGenerator {
     }
     
     private Transaction createTransaction(final ManipulationType manipulationType) {
-        var dataManipulations = IntStream.range(0, recordsPertransaction)
+        List<DataManipulation> dataManipulations = IntStream.range(0, recordsPertransaction)
                 .mapToObj(r -> availableRecordIdentifiers.pollRecordIdentifier(manipulationType))
                 .map(this::createDataManipulation)
                 .collect(Collectors.toList());
@@ -74,7 +74,7 @@ public class TransactionGenerator {
     
     private DataManipulation createDataManipulation(String recordIdentifier) {
         int partitionNumber = recordIdentifier.hashCode() % maximumNumberOfPartitions;
-        var dataValue = "Some random value: " + randomGenerator.nextLong();
+        String dataValue = "Some random value: " + randomGenerator.nextLong();
         return new DataManipulation(recordIdentifier, "Partition" + partitionNumber, dataValue);
     }
 
@@ -113,11 +113,11 @@ public class TransactionGenerator {
         }
         
         private String pollRecordIdentifier(final List<String> recordIdentifiers) {
-            var recordCount = recordIdentifiers.size();
+            int recordCount = recordIdentifiers.size();
             if (recordCount == 0) {
                 return null;
             }
-            var index = randomGenerator.nextInt(recordCount);
+            int index = randomGenerator.nextInt(recordCount);
             return recordIdentifiers.remove(index);
         }
 

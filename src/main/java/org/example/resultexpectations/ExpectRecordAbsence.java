@@ -5,6 +5,8 @@ import lombok.ToString;
 import org.example.resultset.ResultSet;
 import org.example.resultset.Record;
 
+import java.util.Optional;
+
 /**
  * Expectation that no record with the given primary key is present in the {@link ResultSet}
  */
@@ -15,7 +17,7 @@ public class ExpectRecordAbsence implements Expectation {
 
     @Override
     public boolean isSatisfied(ResultSet resultSet) {
-        final var resultSetRecord = resultSet.getRecordByPrimaryKey(recordExpectedToBeAbsent.getPrimaryKeyValue());
-        return resultSetRecord.isEmpty();
+        final Optional<Record> resultSetRecord = resultSet.getRecordByPrimaryKey(recordExpectedToBeAbsent.getPrimaryKeyValue());
+        return !resultSetRecord.isPresent();
     }
 }

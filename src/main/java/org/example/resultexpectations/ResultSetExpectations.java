@@ -1,10 +1,12 @@
 package org.example.resultexpectations;
 
+import org.example.resultset.Record;
 import org.example.resultset.ResultSet;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class ResultSetExpectations {
     private final Map<String, Expectation> expectationPerPrimaryKeyValue = new HashMap<>();
@@ -18,10 +20,10 @@ public class ResultSetExpectations {
     }
 
     public boolean isStatisfied(ResultSet resultSet) {
-        var satisfied = true;
+        boolean satisfied = true;
 
         for (Expectation expectation : expectationPerPrimaryKeyValue.values()) {
-            var expectationStatisfied = expectation.isSatisfied(resultSet);
+            boolean expectationStatisfied = expectation.isSatisfied(resultSet);
             if (!expectationStatisfied) {
                 System.err.println("Expectation not satisfied: " + expectation);
                 satisfied = false;
@@ -29,8 +31,8 @@ public class ResultSetExpectations {
         }
 
         // Check no other primary key value
-        var primaryKeyValuesWithExpectations = expectationPerPrimaryKeyValue.keySet();
-        for (var r : resultSet.getRecords()) {
+        Set<String> primaryKeyValuesWithExpectations = expectationPerPrimaryKeyValue.keySet();
+        for (Record r : resultSet.getRecords()) {
             if (!primaryKeyValuesWithExpectations.contains(r.getPrimaryKeyValue())) {
                 System.err.println("Unexpected primary key in the result set: " + r.getPrimaryKeyValue());
                 satisfied = false;

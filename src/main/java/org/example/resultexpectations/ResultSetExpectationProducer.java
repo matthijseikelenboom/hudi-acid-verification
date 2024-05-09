@@ -20,15 +20,24 @@ public class ResultSetExpectationProducer {
     }
 
     public ResultSetExpectations createResultSetExpectations(int eventCountBeforeRead, int eventCountAfterRead) {
-        var expectations = new ResultSetExpectations();
-        var eventFilter = new EventFilter(eventCountBeforeRead, eventCountAfterRead);
-        for (var event : eventFilter.getIntendedEvents()) {
-            var isCommittedBeforeRead = eventFilter.isCommittedBeforeRead(event);
-            for (var dataManipulation : event.transaction.dataManipulations) {
-                Expectation expectation = switch (event.transaction.manipulationType) {
-                    case INSERT -> createInsertExpectation(expectations, dataManipulation, isCommittedBeforeRead);
-                    case UPDATE -> createUpdateExpectation(expectations, dataManipulation, isCommittedBeforeRead);
-                    case DELETE -> createDeleteExpectation(expectations, dataManipulation, isCommittedBeforeRead);
+        ResultSetExpectations expectations = new ResultSetExpectations();
+        EventFilter eventFilter = new EventFilter(eventCountBeforeRead, eventCountAfterRead);
+        for (TransactionLogEvent event : eventFilter.getIntendedEvents()) {
+            boolean isCommittedBeforeRead = eventFilter.isCommittedBeforeRead(event);
+            for (DataManipulation dataManipulation : event.transaction.dataManipulations) {
+                Expectation expectation;
+                switch (event.transaction.manipulationType) {
+                    case INSERT:
+                        expectation = createInsertExpectation(expectations, dataManipulation, isCommittedBeforeRead);
+                        break;
+                    case UPDATE:
+                        expectation = createUpdateExpectation(expectations, dataManipulation, isCommittedBeforeRead);
+                        break;
+                    case DELETE:
+                        expectation = createDeleteExpectation(expectations, dataManipulation, isCommittedBeforeRead);
+                        break;
+                    default:
+                        throw new IllegalStateException("Kaput!");
                 };
                 expectations.setRecordExpectation(dataManipulation.primaryKeyValue, expectation);
             }
@@ -37,36 +46,36 @@ public class ResultSetExpectationProducer {
     }
 
     private static Expectation createInsertExpectation(final ResultSetExpectations expectations, final DataManipulation dataManipulation, final boolean isCommittedBeforeRead) {
-        var insertedRecord = new Record(dataManipulation.primaryKeyValue, dataManipulation.partitionKeyValue, dataManipulation.dataValue);
-        var insertSucceededExpectation = ExpectRecordPresence.create(insertedRecord);
+        Record insertedRecord = new Record(dataManipulation.primaryKeyValue, dataManipulation.partitionKeyValue, dataManipulation.dataValue);
+        ExpectRecordPresence insertSucceededExpectation = ExpectRecordPresence.create(insertedRecord);
         if (isCommittedBeforeRead) {
             return insertSucceededExpectation;
         } else {
-            var insertNotHappenedYetExpectation = expectations.getRecordExpectation(dataManipulation.primaryKeyValue)
+            Expectation insertNotHappenedYetExpectation = expectations.getRecordExpectation(dataManipulation.primaryKeyValue)
                     .orElse(ExpectRecordAbsence.create(insertedRecord));
             return insertNotHappenedYetExpectation.or(insertSucceededExpectation);
         }
     }
 
     private static Expectation createUpdateExpectation(final ResultSetExpectations expectations, final DataManipulation dataManipulation, final boolean isCommittedBeforeRead) {
-        var updatedRecord = new Record(dataManipulation.primaryKeyValue, dataManipulation.partitionKeyValue, dataManipulation.dataValue);
-        var updateSucceededExpectation = ExpectRecordPresence.create(updatedRecord);
+        Record updatedRecord = new Record(dataManipulation.primaryKeyValue, dataManipulation.partitionKeyValue, dataManipulation.dataValue);
+        ExpectRecordPresence updateSucceededExpectation = ExpectRecordPresence.create(updatedRecord);
         if (isCommittedBeforeRead) {
             return updateSucceededExpectation;
         } else {
-            var updateNotHappenedYetExpectation = expectations.getRecordExpectation(dataManipulation.primaryKeyValue)
+            Expectation updateNotHappenedYetExpectation = expectations.getRecordExpectation(dataManipulation.primaryKeyValue)
                     .orElseThrow(() -> new IllegalStateException("When updating a record, there should already be an expectation on the existing record"));
             return updateNotHappenedYetExpectation.or(updateSucceededExpectation);
         }
     }
 
     private static Expectation createDeleteExpectation(final ResultSetExpectations expectations, final DataManipulation dataManipulation, final boolean isCommittedBeforeRead) {
-        var recordToDelete = new Record(dataManipulation.primaryKeyValue, dataManipulation.partitionKeyValue, dataManipulation.dataValue);
-        var deleteSucceededExpectation = ExpectRecordPresence.create(recordToDelete);
+        Record recordToDelete = new Record(dataManipulation.primaryKeyValue, dataManipulation.partitionKeyValue, dataManipulation.dataValue);
+        ExpectRecordPresence deleteSucceededExpectation = ExpectRecordPresence.create(recordToDelete);
         if (isCommittedBeforeRead) {
             return deleteSucceededExpectation;
         } else {
-            var deleteNotHappenedYetExpectation = expectations.getRecordExpectation(dataManipulation.primaryKeyValue)
+            Expectation deleteNotHappenedYetExpectation = expectations.getRecordExpectation(dataManipulation.primaryKeyValue)
                     .orElseThrow(() -> new IllegalStateException("When deleting a record, there should already be an expectation on the existing record"));
             return deleteNotHappenedYetExpectation.or(deleteSucceededExpectation);
         }
@@ -78,7 +87,7 @@ public class ResultSetExpectationProducer {
         private final Set<UUID> committedTransactionsBeforeRead;
 
         EventFilter(int eventCountBeforeRead, int eventCountAfterRead) {
-            var events = transactionLog.getFirstNEvents(eventCountAfterRead);
+            List<TransactionLogEvent> events = transactionLog.getFirstNEvents(eventCountAfterRead);
             this.intendedEvents = events.stream()
                     .filter(event -> event.eventType == EventType.TRANSACTION_INTENDED)
                     .collect(Collectors.toList());
