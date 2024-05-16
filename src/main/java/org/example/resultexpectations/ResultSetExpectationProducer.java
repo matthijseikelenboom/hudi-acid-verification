@@ -25,10 +25,19 @@ public class ResultSetExpectationProducer {
         for (var event : eventFilter.getIntendedEvents()) {
             var isCommittedBeforeRead = eventFilter.isCommittedBeforeRead(event);
             for (var dataManipulation : event.transaction.dataManipulations) {
-                Expectation expectation = switch (event.transaction.manipulationType) {
-                    case INSERT -> createInsertExpectation(expectations, dataManipulation, isCommittedBeforeRead);
-                    case UPDATE -> createUpdateExpectation(expectations, dataManipulation, isCommittedBeforeRead);
-                    case DELETE -> createDeleteExpectation(expectations, dataManipulation, isCommittedBeforeRead);
+                Expectation expectation = null;
+                switch (event.transaction.manipulationType) {
+                    case INSERT:
+                        expectation = createInsertExpectation(expectations, dataManipulation, isCommittedBeforeRead);
+                        break;
+                    case UPDATE:
+                        expectation = createUpdateExpectation(expectations, dataManipulation, isCommittedBeforeRead);
+                        break;
+                    case DELETE:
+                        expectation = createDeleteExpectation(expectations, dataManipulation, isCommittedBeforeRead);
+                        break;
+                    default:
+                        throw new IllegalStateException("Kaput!");
                 };
                 expectations.setRecordExpectation(dataManipulation.primaryKeyValue, expectation);
             }
