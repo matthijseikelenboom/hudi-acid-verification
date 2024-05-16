@@ -73,6 +73,7 @@ public class ReaderThread extends Thread {
 
     public ResultSet readData() {
         session.sql("REFRESH TABLE " + fullyQualifiedTableName);
+        session.sql("MSCK REPAIR TABLE" + fullyQualifiedTableName);
         var recordDataSet = session
                 .sql("SELECT * FROM " + fullyQualifiedTableName)
                 .as(Record.getEncoder())

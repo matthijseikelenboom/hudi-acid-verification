@@ -134,6 +134,7 @@ public class TransactionWriter extends Thread {
                     .option("hoodie.datasource.write.recordkey.field", "primaryKeyValue")
                     .option("hoodie.datasource.write.partitionpath.field", "partitionKeyValue")
                     .option("hoodie.datasource.write.precombine.field", "dataValue")
+                    .option("hoodie.write.lock.provider", "org.apache.hudi.client.transaction.lock.FileSystemBasedLockProvider")
                     .mode(SaveMode.Append)
                     .save(tablePath);
         });
