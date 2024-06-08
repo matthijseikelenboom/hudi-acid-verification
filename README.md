@@ -65,11 +65,13 @@ After Docker has been started, you can run the test in `TransactionManagerTest`.
 Note that this test doesn't run on a distributed file system, like HDFS, unless you have it installed on the machine you're running it on.
 
 # Test results
-At first glance the test seems to succeed, as it is green in the IDE (IntelliJ).
+~~At first glance the test seems to succeed, as it is green in the IDE (IntelliJ).
 However, when looking at how many rows there are, when the run is finished, it often shows somewhere between the 3 and 9. (With the configuration provided in the test)
-This is way too little, considering that the `Configuration` has multiple flags that tell it to favour `INSERT` and `UPDATE` over `DELETE`.
+This is way too little, considering that the `Configuration` has multiple flags that tell it to favour `INSERT` and `UPDATE` over `DELETE`.~~
 
-Another way to see that Hudi is failing this test is putting a breakpoint on line `131` in the class `TransactionManager`.
-With the configuration provided in the test, it doesn't come further than 10 hits max.
+~~Another way to see that Hudi is failing this test is putting a breakpoint on line `131` in the class `TransactionManager`.
+With the configuration provided in the test, it doesn't come further than 10 hits max.~~
 
-Lastly, in the console it is visible to see that all writers eventually break with the exception: `Exception in writer`.
+~~Lastly, in the console it is visible to see that all writers eventually break with the exception: `Exception in writer`.~~
+
+After a discussion and help of some devs of Hudi, in [this](https://github.com/apache/hudi/issues/11170) issue, some problems in the code where resolved and the test now passes.

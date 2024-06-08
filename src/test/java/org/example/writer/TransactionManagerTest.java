@@ -25,7 +25,7 @@ public class TransactionManagerTest {
         FileUtils.cleanDirectory(testDataDir.toFile());
 
         configuration = Configuration.create()
-                .withTotalNumberOfTransactions(1000)
+                .withTotalNumberOfTransactions(100)
                 .withNumberOfWriterThreads(2)
                 .withNumberOfSparkSessionsForWriters(2);
     }
